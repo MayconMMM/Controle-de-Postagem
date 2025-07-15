@@ -116,44 +116,36 @@ function App() {
     if (notificationPermission !== 'granted') return;
 
     try {
+        // Primeiro tentar com service worker (mais confiável)
         if ('serviceWorker' in navigator) {
             const registration = await navigator.serviceWorker.ready;
-            const iconUrl = channelImage || getPlaceholderAvatar(channelName);
-
-            await registration.showNotification('Postagem Liberada!', {
-                body: `Você já pode postar novamente. O último canal foi "${channelName}".`,
-                icon: iconUrl,
-                tag: 'post-manager-cooldown-finished',
-                badge: iconUrl,
-                vibrate: [200, 100, 200],
-                requireInteraction: true,
-                actions: [
-                    {
-                        action: 'open',
-                        title: 'Abrir App'
-                    }
-                ]
-            });
-        } else {
-            // Fallback para browsers sem service worker
-            new Notification('Postagem Liberada!', {
-                body: `Você já pode postar novamente. O último canal foi "${channelName}".`,
-                icon: channelImage || getPlaceholderAvatar(channelName),
-                tag: 'post-manager-cooldown-finished'
-            });
+            if (registration.active) {
+                registration.active.postMessage({
+                    type: 'TEST_NOTIFICATION',
+                    channelName,
+                    channelImage
+                });
+                return;
+            }
         }
+        
+        // Fallback direto
+        const iconUrl = channelImage || getPlaceholderAvatar(channelName);
+        const notification = new Notification('🧪 Teste de Notificação', {
+            body: `Esta é uma notificação de teste para o canal "${channelName}". Se você está vendo isso, as notificações estão funcionando!`,
+            icon: iconUrl,
+            tag: 'test-notification',
+            vibrate: [100, 50, 100],
+            requireInteraction: false
+        });
+        
+        // Auto-fechar após 5 segundos
+        setTimeout(() => {
+            notification.close();
+        }, 5000);
+        
     } catch (error) {
         console.error('Error showing notification:', error);
-        
-        // Fallback final
-        try {
-            new Notification('Postagem Liberada!', {
-                body: `Você já pode postar novamente. O último canal foi "${channelName}".`,
-                icon: channelImage || getPlaceholderAvatar(channelName)
-            });
-        } catch (fallbackError) {
-            console.error('Fallback notification also failed:', fallbackError);
-        }
     }
 }, [notificationPermission]);
   
@@ -205,7 +197,7 @@ function App() {
     if (channel) {
       setLastPostInfo({ channel, timestamp: now });
       
-      // Agendar notificação via service worker para funcionar em background
+      // Agendar notificação via service worker
       if ('serviceWorker' in navigator && notificationPermission === 'granted') {
         navigator.serviceWorker.ready.then(registration => {
           if (registration.active) {
@@ -213,9 +205,13 @@ function App() {
               type: 'SCHEDULE_NOTIFICATION',
               channelName: channel.name,
               channelImage: channel.imageUrl,
+              channelId: channel.id,
               delay: cooldownMinutes * 60 * 1000
             });
+            console.log(`Notification scheduled for ${channel.name} in ${cooldownMinutes} minutes`);
           }
+        }).catch(error => {
+          console.error('Error scheduling notification:', error);
         });
       }
     }
