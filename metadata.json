@@ -1,0 +1,6 @@
+{
+  "name": "Gerenciador de Postagens do YouTube",
+  "description": "Uma ferramenta para ajudar a controlar o tempo de postagem em múltiplos canais do YouTube, evitando spam e otimizando o fluxo de trabalho.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
