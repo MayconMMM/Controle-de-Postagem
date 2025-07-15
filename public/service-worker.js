@@ -35,7 +35,7 @@ self.addEventListener('message', (event) => {
       try {
         const iconUrl = channelImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(channelName)}&background=ef4444&color=fff&size=128`;
         
-        await self.registration.showNotification('🎉 Postagem Liberada!', {
+        const notificationOptions = {
           body: `Você já pode postar novamente no canal "${channelName}". Clique para abrir o app.`,
           icon: iconUrl,
           badge: iconUrl,
@@ -44,6 +44,7 @@ self.addEventListener('message', (event) => {
           requireInteraction: true,
           silent: false,
           timestamp: Date.now(),
+          image: iconUrl,
           actions: [
             {
               action: 'open',
@@ -60,7 +61,11 @@ self.addEventListener('message', (event) => {
             channelId,
             url: self.location.origin
           }
-        });
+        };
+        
+        console.log('SW: Creating notification with options:', notificationOptions);
+        await self.registration.showNotification('🎉 Postagem Liberada!', notificationOptions);
+        console.log('SW: Notification created successfully');
         
         // Remover timer do mapa
         notificationTimers.delete(channelId);
@@ -85,31 +90,37 @@ self.addEventListener('message', (event) => {
     }
   }
   
-  if (event.data && event.data.type === 'TEST_NOTIFICATION') {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION_NOW') {
     const { channelName, channelImage } = event.data;
     
     const iconUrl = channelImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(channelName)}&background=22c55e&color=fff&size=128`;
     
-    self.registration.showNotification('🧪 Teste de Notificação', {
-      body: `Esta é uma notificação de teste para o canal "${channelName}". Se você está vendo isso, as notificações estão funcionando!`,
+    console.log('SW: Showing immediate notification for:', channelName);
+    
+    self.registration.showNotification('🎉 Postagem Liberada!', {
+      body: `Você já pode postar novamente no canal "${channelName}". Clique para abrir o app.`,
       icon: iconUrl,
       badge: iconUrl,
-      tag: 'test-notification',
-      vibrate: [100, 50, 100],
-      requireInteraction: false,
+      tag: `immediate-${Date.now()}`,
+      vibrate: [200, 100, 200],
+      requireInteraction: true,
       silent: false,
+      timestamp: Date.now(),
       actions: [
         {
           action: 'open',
-          title: '👍 Funcionando!',
+          title: '📱 Abrir App',
           icon: iconUrl
         }
       ],
       data: {
         channelName,
-        isTest: true,
         url: self.location.origin
       }
+    }).then(() => {
+      console.log('SW: Immediate notification shown successfully');
+    }).catch(error => {
+      console.error('SW: Error showing immediate notification:', error);
     });
   }
 });

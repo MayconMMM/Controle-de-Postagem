@@ -113,39 +113,70 @@ function App() {
   }, []);
   
   const showBrowserNotification = useCallback(async (channelName: string, channelImage: string) => {
-    if (notificationPermission !== 'granted') return;
+    if (notificationPermission !== 'granted') {
+      console.log('Notification permission not granted:', notificationPermission);
+      return;
+    }
 
+    console.log('Attempting to show notification for:', channelName);
+    
     try {
-        // Primeiro tentar com service worker (mais confiável)
-        if ('serviceWorker' in navigator) {
-            const registration = await navigator.serviceWorker.ready;
-            if (registration.active) {
-                registration.active.postMessage({
-                    type: 'TEST_NOTIFICATION',
-                    channelName,
-                    channelImage
-                });
-                return;
-            }
-        }
-        
-        // Fallback direto
+        // Tentar notificação direta primeiro (mais compatível)
         const iconUrl = channelImage || getPlaceholderAvatar(channelName);
-        const notification = new Notification('🧪 Teste de Notificação', {
-            body: `Esta é uma notificação de teste para o canal "${channelName}". Se você está vendo isso, as notificações estão funcionando!`,
+        
+        console.log('Creating notification with icon:', iconUrl);
+        
+        const notification = new Notification('🎉 Postagem Liberada!', {
+            body: `Você já pode postar novamente no canal "${channelName}". Clique para abrir o app.`,
             icon: iconUrl,
-            tag: 'test-notification',
-            vibrate: [100, 50, 100],
-            requireInteraction: false
+            badge: iconUrl,
+            tag: `post-manager-${channelName}`,
+            vibrate: [200, 100, 200],
+            requireInteraction: true,
+            silent: false,
+            timestamp: Date.now(),
+            data: {
+                channelName,
+                url: window.location.origin
+            }
         });
         
-        // Auto-fechar após 5 segundos
-        setTimeout(() => {
+        console.log('Notification created successfully');
+        
+        // Adicionar event listeners
+        notification.onclick = () => {
+            console.log('Notification clicked');
+            window.focus();
             notification.close();
-        }, 5000);
+        };
+        
+        notification.onshow = () => {
+            console.log('Notification shown');
+        };
+        
+        notification.onerror = (error) => {
+            console.error('Notification error:', error);
+        };
         
     } catch (error) {
         console.error('Error showing notification:', error);
+        
+        // Fallback: tentar com service worker
+        if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                if (registration.active) {
+                    console.log('Trying service worker notification fallback');
+                    registration.active.postMessage({
+                        type: 'SHOW_NOTIFICATION_NOW',
+                        channelName,
+                        channelImage
+                    });
+                }
+            } catch (swError) {
+                console.error('Service worker notification fallback failed:', swError);
+            }
+        }
     }
 }, [notificationPermission]);
   
@@ -197,22 +228,33 @@ function App() {
     if (channel) {
       setLastPostInfo({ channel, timestamp: now });
       
-      // Agendar notificação via service worker
-      if ('serviceWorker' in navigator && notificationPermission === 'granted') {
-        navigator.serviceWorker.ready.then(registration => {
-          if (registration.active) {
-            registration.active.postMessage({
-              type: 'SCHEDULE_NOTIFICATION',
-              channelName: channel.name,
-              channelImage: channel.imageUrl,
-              channelId: channel.id,
-              delay: cooldownMinutes * 60 * 1000
-            });
-            console.log(`Notification scheduled for ${channel.name} in ${cooldownMinutes} minutes`);
-          }
-        }).catch(error => {
-          console.error('Error scheduling notification:', error);
-        });
+      console.log(`Post recorded for ${channel.name}, cooldown: ${cooldownMinutes} minutes`);
+      
+      // Agendar notificação com múltiplas abordagens
+      if (notificationPermission === 'granted') {
+        // Abordagem 1: Service Worker (para background)
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+            if (registration.active) {
+              registration.active.postMessage({
+                type: 'SCHEDULE_NOTIFICATION',
+                channelName: channel.name,
+                channelImage: channel.imageUrl,
+                channelId: channel.id,
+                delay: cooldownMinutes * 60 * 1000
+              });
+              console.log(`SW notification scheduled for ${channel.name} in ${cooldownMinutes} minutes`);
+            }
+          }).catch(error => {
+            console.error('Error scheduling SW notification:', error);
+          });
+        }
+        
+        // Abordagem 2: Timer JavaScript (backup)
+        setTimeout(() => {
+          console.log(`JavaScript timer notification for ${channel.name}`);
+          showBrowserNotification(channel.name, channel.imageUrl);
+        }, cooldownMinutes * 60 * 1000);
       }
     }
   }, [cooldownMinutes, channels, incrementPostCount]);
@@ -263,10 +305,45 @@ function App() {
 
   const handleTestNotification = () => {
     initAudioContext();
-    if (notificationPermission !== 'granted') return;
+    if (notificationPermission !== 'granted') {
+      alert('Permissão de notificação não concedida. Clique em "Habilitar Notificações" primeiro.');
+      return;
+    }
+    
+    console.log('Testing notification...');
     const testChannelName = channels.length > 0 ? channels[0].name : 'Canal de Teste';
     const testChannelImage = channels.length > 0 ? channels[0].imageUrl : '';
-    showBrowserNotification(testChannelName, testChannelImage);
+    
+    // Teste direto com Notification API
+    try {
+      const iconUrl = testChannelImage || getPlaceholderAvatar(testChannelName);
+      const notification = new Notification('🧪 Teste de Notificação', {
+        body: `Esta é uma notificação de teste para o canal "${testChannelName}". Se você está vendo isso, as notificações estão funcionando!`,
+        icon: iconUrl,
+        badge: iconUrl,
+        tag: 'test-notification',
+        vibrate: [100, 50, 100],
+        requireInteraction: false,
+        silent: false
+      });
+      
+      notification.onclick = () => {
+        console.log('Test notification clicked');
+        window.focus();
+        notification.close();
+      };
+      
+      // Auto-fechar após 5 segundos
+      setTimeout(() => {
+        notification.close();
+      }, 5000);
+      
+      console.log('Test notification created successfully');
+    } catch (error) {
+      console.error('Test notification failed:', error);
+      alert('Erro ao criar notificação de teste: ' + error.message);
+    }
+    
     playNotificationSound();
   };
   
