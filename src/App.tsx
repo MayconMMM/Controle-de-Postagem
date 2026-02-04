@@ -4,8 +4,10 @@ import { AddChannelForm } from './components/AddChannelForm';
 import { ChannelCard } from './components/ChannelCard';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { SettingsModal } from './components/SettingsModal';
+import { PostHistoryModal } from './components/PostHistoryModal';
 import { Icon } from './components/Icon';
 import { useChannels } from './hooks/useChannels';
+import { usePostHistory } from './hooks/usePostHistory';
 import type { Channel } from './types';
 
 const COOLDOWN_STORAGE_KEY = 'youtubePostManagerCooldown';
@@ -28,6 +30,7 @@ const getPlaceholderAvatar = (name: string) => `https://ui-avatars.com/api/?name
 
 function App() {
   const { channels, addChannel, removeChannel, incrementPostCount, resetPostCount, resetAllPostCounts } = useChannels();
+  const { postHistory, addPostToHistory, clearHistory, removePostFromHistory } = usePostHistory();
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,7 @@ function App() {
 
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // Global Cooldown State
   const [cooldownMinutes, setCooldownMinutes] = useState<number>(() => {
@@ -228,6 +232,9 @@ function App() {
     if (channel) {
       setLastPostInfo({ channel, timestamp: now });
       
+      // Adicionar ao histórico
+      addPostToHistory(channel.id, channel.name, channel.imageUrl);
+      
       console.log(`Post recorded for ${channel.name}, cooldown: ${cooldownMinutes} minutes`);
       
       // Agendar notificação com múltiplas abordagens
@@ -257,7 +264,7 @@ function App() {
         }, cooldownMinutes * 60 * 1000);
       }
     }
-  }, [cooldownMinutes, channels, incrementPostCount]);
+  }, [cooldownMinutes, channels, incrementPostCount, addPostToHistory]);
 
   const handleFetchAndAddChannel = useCallback(async (url: string) => {
     initAudioContext();
@@ -382,13 +389,24 @@ function App() {
 
   return (
     <div className="min-h-screen p-4 md:p-8" onClick={initAudioContext}>
-      <button 
-        onClick={() => setIsSettingsOpen(true)}
-        className="fixed top-4 right-4 z-30 p-3 rounded-full bg-[var(--color-card)] text-[var(--color-text)] shadow-lg hover:bg-[var(--color-border)] transition-colors"
-        aria-label="Abrir configurações"
-      >
-        <Icon type="Cog" className="w-6 h-6" />
-      </button>
+      <div className="fixed top-4 right-4 z-30 flex gap-2">
+        <button 
+          onClick={() => setIsHistoryOpen(true)}
+          className="p-3 rounded-full bg-[var(--color-card)] text-[var(--color-text)] shadow-lg hover:bg-[var(--color-border)] transition-colors"
+          aria-label="Ver histórico de postagens"
+          title="Histórico de Postagens"
+        >
+          <Icon type="History" className="w-6 h-6" />
+        </button>
+        <button 
+          onClick={() => setIsSettingsOpen(true)}
+          className="p-3 rounded-full bg-[var(--color-card)] text-[var(--color-text)] shadow-lg hover:bg-[var(--color-border)] transition-colors"
+          aria-label="Abrir configurações"
+          title="Configurações"
+        >
+          <Icon type="Cog" className="w-6 h-6" />
+        </button>
+      </div>
 
       <Header />
       
@@ -470,6 +488,14 @@ function App() {
         setCooldownMinutes={setCooldownMinutes}
         onResetAllCountsRequest={handleResetAllCountsRequest}
         hasChannels={channels.length > 0}
+      />
+
+      <PostHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        postHistory={postHistory}
+        onClearHistory={clearHistory}
+        onRemovePost={removePostFromHistory}
       />
     </div>
   );

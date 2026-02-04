@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  type: 'Plus' | 'Trash' | 'Clock' | 'Check' | 'Bell' | 'Cog' | 'Reset';
+  type: 'Plus' | 'Trash' | 'Clock' | 'Check' | 'Bell' | 'Cog' | 'Reset' | 'History';
   className?: string;
 }
 
@@ -41,6 +41,11 @@ export const Icon: React.FC<IconProps> = ({ type, className = 'w-6 h-6' }) => {
     Reset: (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-4.991-2.695v-2.257a2.25 2.25 0 0 0-2.25-2.25H9.75a2.25 2.25 0 0 0-2.25 2.25v2.257m12.138 4.992L18.75 16.25m-14.25 0l2.25 2.25" />
+        </svg>
+    ),
+    History: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
     ),
   };

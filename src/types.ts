@@ -4,3 +4,11 @@ export interface Channel {
   imageUrl: string;
   postCount: number;
 }
+
+export interface PostHistory {
+  id: string;
+  channelId: string;
+  channelName: string;
+  channelImage: string;
+  timestamp: number;
+}
