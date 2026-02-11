@@ -279,11 +279,10 @@ function App() {
 
     try {
         const encodedUrl = encodeURIComponent(url);
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodedUrl}`;
+        const proxyUrl = `https://corsproxy.io/?${encodedUrl}`;
         const response = await fetch(proxyUrl);
         if (!response.ok) throw new Error(`Falha ao buscar dados do canal (status: ${response.status}).`);
-        const jsonResponse = await response.json();
-        const htmlContent = jsonResponse.contents;
+        const htmlContent = await response.text();
         if (!htmlContent) throw new Error('Não foi possível obter o conteúdo da página.');
 
         const parser = new DOMParser();
