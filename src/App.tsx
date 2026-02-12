@@ -284,7 +284,6 @@ function App() {
         if (!response.ok) throw new Error(`Falha ao buscar dados do canal (status: ${response.status}).`);
         const jsonResponse = await response.json();
         const htmlContent = jsonResponse.contents;
-        const htmlContent = jsonResponse.contents;
         if (!htmlContent) throw new Error('Não foi possível obter o conteúdo da página.');
 
         const parser = new DOMParser();
