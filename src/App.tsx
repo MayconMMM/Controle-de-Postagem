@@ -32,7 +32,6 @@ function App() {
   const { channels, addChannel, removeChannel, incrementPostCount, resetPostCount, resetAllPostCounts } = useChannels();
   const { postHistory, addPostToHistory, clearHistory, removePostFromHistory } = usePostHistory();
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -266,43 +265,23 @@ function App() {
     }
   }, [cooldownMinutes, channels, incrementPostCount, addPostToHistory]);
 
-  const handleFetchAndAddChannel = useCallback(async (url: string) => {
+  const handleAddChannel = useCallback((name: string, imageUrl?: string) => {
     initAudioContext();
-    setIsLoading(true);
     setError(null);
 
-    if (!url.includes('youtube.com/')) {
-        setError('Por favor, insira uma URL válida de um canal do YouTube.');
-        setIsLoading(false);
+    if (!name.trim()) {
+        setError('Por favor, insira o nome do canal.');
         return;
     }
 
-    try {
-        const encodedUrl = encodeURIComponent(url);
-        const proxyUrl = `https://corsproxy.io/?${encodedUrl}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Falha ao buscar dados do canal (status: ${response.status}).`);
-        const htmlContent = await response.text();
-        if (!htmlContent) throw new Error('Não foi possível obter o conteúdo da página.');
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlContent, 'text/html');
-
-        const name = doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
-        const imageUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
-        
-        if (!name || !imageUrl) throw new Error('Não foi possível extrair o nome e a imagem do canal.');
-        if (channels.some(c => c.name.toLowerCase() === name.toLowerCase())) {
-            setError(`O canal "${name}" já foi adicionado.`);
-        } else {
-            addChannel(name, imageUrl);
-        }
-    } catch (err: any) {
-        console.error(err);
-        setError(err.message || 'Ocorreu um erro desconhecido.');
-    } finally {
-        setIsLoading(false);
+    if (channels.some(c => c.name.toLowerCase() === name.trim().toLowerCase())) {
+        setError(`O canal "${name.trim()}" já foi adicionado.`);
+        return;
     }
+
+    const finalImageUrl = imageUrl?.trim() || getPlaceholderAvatar(name.trim());
+    addChannel(name.trim(), finalImageUrl);
+    setError(null);
 }, [addChannel, channels]);
 
   const handleEnableNotificationsClick = () => {
@@ -410,9 +389,8 @@ function App() {
       <Header />
       
       <main className="container mx-auto">
-        <AddChannelForm 
-          onAddChannel={handleFetchAndAddChannel} 
-          isLoading={isLoading}
+        <AddChannelForm
+          onAddChannel={handleAddChannel}
           error={error}
         />
         
