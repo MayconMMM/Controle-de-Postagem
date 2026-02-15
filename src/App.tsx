@@ -387,8 +387,24 @@ function App() {
       </div>
 
       <Header />
-      
+
       <main className="container mx-auto">
+        {channels.length > 0 && (
+          <div className="mb-8 max-w-4xl mx-auto p-6 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] rounded-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[var(--color-text-muted)] text-sm font-medium">Total de Vídeos Postados</p>
+                <p className="text-4xl font-bold text-white mt-1">
+                  {channels.reduce((total, channel) => total + channel.postCount, 0)}
+                </p>
+              </div>
+              <div className="text-6xl opacity-20 text-white">
+                <Icon type="Play" className="w-24 h-24" />
+              </div>
+            </div>
+          </div>
+        )}
+
         <AddChannelForm
           onAddChannel={handleAddChannel}
           error={error}
